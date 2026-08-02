@@ -4,8 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>memoal studio — 管理画面</title>
+<script>
+  // ── 屋号設定 ──　配布先の屋号に変更する場合はここだけ書き換えてください
+  const SITE_NAME = 'memoal studio';
+  // ── Google OAuthクライアントID ──　配布先はGoogle Cloud Consoleで発行した自分のIDに書き換えてください
+  const GOOGLE_CLIENT_ID = '1059607266659-e5v6q99ikqq6037gds7hv6ct3hht11sr.apps.googleusercontent.com';
+</script>
 <script src="https://unpkg.com/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root{
   --bg:#f5f2ee;--bg2:#eceae5;--surface:#fff;--text:#1a1a18;--text2:#6b6960;
@@ -144,7 +151,7 @@ header{padding:16px 32px;display:flex;align-items:center;justify-content:space-b
 <!-- ログイン -->
 <div id="login-view">
   <div class="login-box">
-    <h2>memoal studio</h2>
+    <h2 id="site-name-login">memoal studio</h2>
     <p>管理画面</p>
     <input type="password" id="pw-input" placeholder="パスワード" onkeydown="if(event.key==='Enter')doLogin()">
     <button onclick="doLogin()">ログイン</button>
@@ -156,7 +163,7 @@ header{padding:16px 32px;display:flex;align-items:center;justify-content:space-b
 <div id="main-view">
   <header>
     <div class="logo">
-      <strong>memoal studio</strong>
+      <strong id="site-name">memoal studio</strong>
       <span id="admin-badge">管理画面</span>
     </div>
     <button id="logout-btn" onclick="doLogout()">ログアウト</button>
@@ -241,6 +248,10 @@ header{padding:16px 32px;display:flex;align-items:center;justify-content:space-b
       <label>アルバムタイトル</label>
       <input type="text" id="reg-title" placeholder="例：七五三 田中様">
     </div>
+    <div class="form-group" id="drive-upload-group">
+      <button type="button" id="drive-upload-btn" onclick="uploadAlbumToDrive()" style="width:100%;padding:9px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);cursor:pointer;font-size:13px;">📤 このページ内容をGoogle Driveにアップロード</button>
+      <div class="drive-hint">※ 初回はGoogleアカウントへのログインが求められます。アップロード完了後、下のURL欄が自動入力されます。</div>
+    </div>
     <div class="form-group">
       <label>Google DriveのフォルダURL</label>
       <input type="text" id="reg-drive-url" placeholder="https://drive.google.com/drive/folders/...">
@@ -268,6 +279,11 @@ header{padding:16px 32px;display:flex;align-items:center;justify-content:space-b
 </div>
 
 <script>
+// 屋号設定の反映
+document.title = SITE_NAME+' — 管理画面';
+document.getElementById('site-name-login').textContent = SITE_NAME;
+document.getElementById('site-name').textContent = SITE_NAME;
+
 const API='https://memoal-portfolio-api.memoal-jp.workers.dev';
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -384,6 +400,8 @@ function openEditModal(album){
   document.getElementById('reg-cover-url').value=album.coverUrl||'';
   document.getElementById('reg-file-count').value=album.fileCount||'';
   document.getElementById('modal-save').onclick=function(){saveEdit(album.id);};
+  regSourceCanvases=null;
+  document.getElementById('drive-upload-group').style.display='none';
   document.getElementById('register-modal').classList.add('open');
 }
 
@@ -398,13 +416,107 @@ async function saveEdit(id){
   loadRegistered();
 }
 
+// ── Google Driveへの直接アップロード ──
+var driveAccessToken=null;
+var driveTokenClient=null;
+
+function ensureDriveAuth(){
+  return new Promise(function(resolve,reject){
+    if(driveAccessToken){resolve(driveAccessToken);return;}
+    if(typeof google==='undefined'||!google.accounts){reject(new Error('Google Identity Servicesの読み込みに失敗しました'));return;}
+    if(!driveTokenClient){
+      driveTokenClient=google.accounts.oauth2.initTokenClient({
+        client_id:GOOGLE_CLIENT_ID,
+        scope:'https://www.googleapis.com/auth/drive.file',
+        callback:function(resp){
+          if(resp.error){reject(resp);return;}
+          driveAccessToken=resp.access_token;
+          resolve(driveAccessToken);
+        }
+      });
+    }
+    driveTokenClient.requestAccessToken();
+  });
+}
+
+async function driveCreateFolder(name,token){
+  var res=await fetch('https://www.googleapis.com/drive/v3/files',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+    body:JSON.stringify({name:name,mimeType:'application/vnd.google-apps.folder'})
+  });
+  var data=await res.json();
+  if(!data.id)throw new Error('フォルダ作成に失敗しました');
+  return data.id;
+}
+
+async function driveShareFolder(folderId,token){
+  await fetch('https://www.googleapis.com/drive/v3/files/'+folderId+'/permissions',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+    body:JSON.stringify({role:'reader',type:'anyone'})
+  });
+}
+
+function canvasToBlob(canvas,quality){
+  return new Promise(function(resolve){canvas.toBlob(resolve,'image/jpeg',quality||0.95);});
+}
+
+async function driveUploadFile(blob,filename,folderId,token){
+  var metadata={name:filename,parents:[folderId]};
+  var form=new FormData();
+  form.append('metadata',new Blob([JSON.stringify(metadata)],{type:'application/json'}));
+  form.append('file',blob);
+  var res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+token},
+    body:form
+  });
+  return await res.json();
+}
+
+async function uploadAlbumToDrive(){
+  if(!regSourceCanvases||!regSourceCanvases.length){alert('アップロードするページがありません。先にプレビューでページを確認してください。');return;}
+  if(GOOGLE_CLIENT_ID.indexOf('YOUR_CLIENT_ID')===0){alert('GOOGLE_CLIENT_ID が未設定です。管理者にGoogle Cloud ConsoleでのOAuth設定を確認してください。');return;}
+  var title=document.getElementById('reg-title').value.trim();
+  if(!title){alert('先にアルバムタイトルを入力してください');return;}
+  try{
+    showLoading('Googleアカウントにログイン中...',0);
+    var token=await ensureDriveAuth();
+    setLoading('Driveフォルダを作成中...',5);
+    var folderId=await driveCreateFolder(title,token);
+    await driveShareFolder(folderId,token);
+    var canvases=regSourceCanvases;
+    var firstFileId=null;
+    for(var i=0;i<canvases.length;i++){
+      setLoading('Driveにアップロード中… '+(i+1)+' / '+canvases.length,5+((i+1)/canvases.length)*90);
+      var blob=await canvasToBlob(canvases[i],0.95);
+      var filename='page-'+String(i+1).padStart(2,'0')+'.jpg';
+      var uploaded=await driveUploadFile(blob,filename,folderId,token);
+      if(i===0&&uploaded.id)firstFileId=uploaded.id;
+    }
+    hideLoading();
+    document.getElementById('reg-drive-url').value='https://drive.google.com/drive/folders/'+folderId;
+    if(firstFileId)document.getElementById('reg-cover-url').value='https://drive.google.com/uc?export=view&id='+firstFileId;
+    document.getElementById('reg-file-count').value=canvases.length;
+    alert('Driveへのアップロードが完了しました。内容を確認して「登録して公開」を押してください。');
+  }catch(err){
+    hideLoading();
+    console.error(err);
+    alert('アップロードに失敗しました。時間をおいて再度お試しください。');
+  }
+}
+
 // ── 登録モーダル ──
+var regSourceCanvases=null;
 function openRegisterModal(){
   document.getElementById('reg-title').value=currentViewAlbum?currentViewAlbum.title||'':'';
   document.getElementById('reg-drive-url').value='';
   document.getElementById('reg-cover-url').value='';
   document.getElementById('reg-file-count').value=currentViewAlbum&&currentViewAlbum.canvases?currentViewAlbum.canvases.length:'';
   document.getElementById('modal-save').onclick=saveRegistration;
+  regSourceCanvases=currentViewAlbum&&currentViewAlbum.canvases?currentViewAlbum.canvases:null;
+  document.getElementById('drive-upload-group').style.display=regSourceCanvases?'block':'none';
   document.getElementById('register-modal').classList.add('open');
 }
 function closeRegisterModal(){document.getElementById('register-modal').classList.remove('open');}
