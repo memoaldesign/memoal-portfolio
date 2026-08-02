@@ -146,12 +146,13 @@ function hideLoading(){
 }
 
 function driveThumb(id, size){
-  return 'https://drive.google.com/thumbnail?id=' + id + '&sz=w' + (size || 1600);
+  return API + '/image/' + id + '?sz=w' + (size || 1600);
 }
 
-function loadImage(url){
+function loadImage(url, cors){
   return new Promise(function(resolve, reject){
     var img = new Image();
+    if(cors) img.crossOrigin = 'anonymous';
     img.onload = function(){ resolve(img); };
     img.onerror = function(){ reject(new Error('image load failed')); };
     img.src = url;
@@ -235,19 +236,19 @@ async function openAlbum(id){
       showGallery();
       return;
     }
-    var images = [];
+    var canvases = [];
     for(var i = 0; i < ids.length; i++){
       setLoading('写真を読み込み中… ' + (i + 1) + ' / ' + ids.length, ((i + 1) / ids.length) * 100);
       try{
-        var img = await loadImage(driveThumb(ids[i], 1600));
-        images.push(img);
+        var img = await loadImage(driveThumb(ids[i], 1600), true);
+        canvases.push(imgToCanvas(img));
       }catch(e){
         console.error('page load failed', ids[i], e);
       }
     }
     hideLoading();
-    if(!images.length){ alert('写真の読み込みに失敗しました。'); showGallery(); return; }
-    requestAnimationFrame(function(){requestAnimationFrame(function(){initFlipBook(images);});});
+    if(!canvases.length){ alert('写真の読み込みに失敗しました。'); showGallery(); return; }
+    requestAnimationFrame(function(){requestAnimationFrame(function(){initFlipBook(canvases);});});
   }catch(err){
     hideLoading();
     console.error(err);
@@ -257,50 +258,42 @@ async function openAlbum(id){
   }
 }
 
-function isWide(img){ return img.naturalWidth / img.naturalHeight > 1.3; }
-
-// 見開き画像を左右半分に「見せる」divを作る（canvasを使わずCSSでクロップ）
-function halfImageDiv(img, side, pw, ph){
-  var div = document.createElement('div');
-  div.style.cssText = 'width:' + pw + 'px;height:' + ph + 'px;overflow:hidden;position:relative;background:#fff;';
-  var im = document.createElement('img');
-  im.src = img.src;
-  im.style.cssText = 'position:absolute;top:0;height:100%;width:200%;object-fit:cover;' + (side === 'L' ? 'left:0;' : 'left:-100%;');
-  div.appendChild(im);
-  return div;
+function imgToCanvas(img){
+  var c = document.createElement('canvas');
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  c.getContext('2d').drawImage(img, 0, 0);
+  return c;
 }
 
-function fullImageDiv(img, pw, ph, isRight, pi){
-  var div = document.createElement('div');
-  div.style.cssText = 'width:' + pw + 'px;height:' + ph + 'px;overflow:hidden;position:relative;background:#fff;';
-  var im = document.createElement('img');
-  im.src = img.src;
-  im.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-  div.appendChild(im);
-  var shadow = document.createElement('div');
-  var shadowW = '7%';
-  if(isRight){
-    shadow.style.cssText = 'position:absolute;top:0;left:0;width:' + shadowW + ';height:100%;background:linear-gradient(to right, rgba(0,0,0,.28), rgba(0,0,0,0));';
+function isWide(c){ return c.width / c.height > 1.3; }
+
+function splitCanvas(c, side){
+  var hw = Math.floor(c.width / 2);
+  var out = document.createElement('canvas');
+  if(side === 'L'){
+    out.width = hw; out.height = c.height;
+    out.getContext('2d').drawImage(c, 0, 0, hw, c.height, 0, 0, hw, c.height);
   } else {
-    shadow.style.cssText = 'position:absolute;top:0;right:0;width:' + shadowW + ';height:100%;background:linear-gradient(to left, rgba(0,0,0,.28), rgba(0,0,0,0));';
+    var rw = c.width - hw;
+    out.width = rw; out.height = c.height;
+    out.getContext('2d').drawImage(c, hw, 0, rw, c.height, 0, 0, rw, c.height);
   }
-  div.appendChild(shadow);
-  return div;
+  return out;
 }
 
-function buildItems(images){
+function buildItems(raws){
   var items = [], backCover = null;
-  images.forEach(function(img, fi){
-    if(isWide(img)){
+  raws.forEach(function(c, fi){
+    if(isWide(c)){
       if(fi === 0){
-        items.push({img: img, srcIdx: fi, side: 'R', isCover: true});
-        backCover = {img: img, srcIdx: fi, side: 'L', isBackCover: true};
+        items.push({canvas: splitCanvas(c, 'R'), srcIdx: fi, isCover: true});
+        backCover = {canvas: splitCanvas(c, 'L'), srcIdx: fi, isBackCover: true};
       } else {
-        items.push({img: img, srcIdx: fi, side: 'L'});
-        items.push({img: img, srcIdx: fi, side: 'R'});
+        items.push({canvas: splitCanvas(c, 'L'), srcIdx: fi});
+        items.push({canvas: splitCanvas(c, 'R'), srcIdx: fi});
       }
     } else {
-      items.push({img: img, srcIdx: fi});
+      items.push({canvas: c, srcIdx: fi});
     }
   });
   if(backCover) items.push(backCover);
@@ -309,16 +302,16 @@ function buildItems(images){
 
 var flipItems = [];
 
-function initFlipBook(images){
+function initFlipBook(raws){
   try{
     if(pageFlip){ try{ pageFlip.destroy(); }catch(e){} pageFlip = null; }
-    flipItems = buildItems(images);
+    flipItems = buildItems(raws);
     var scene = document.getElementById('book-scene');
     var sceneW = Math.max(scene.clientWidth, window.innerWidth || 800) - 32;
     if(sceneW < 200) sceneW = (window.innerWidth || 600) - 32;
     var maxH = Math.min(560, Math.max(300, window.innerHeight - 260));
-    var firstImg = flipItems[0].img;
-    var aspect = firstImg.naturalWidth / firstImg.naturalHeight / (flipItems[0].side ? 2 : 1);
+    var firstC = flipItems[0].canvas;
+    var aspect = firstC.width / firstC.height;
     var ph = Math.min(maxH, (sceneW / 2) / aspect);
     var pw = Math.floor(ph * aspect);
     if(pw * 2 > sceneW){ pw = Math.floor(sceneW / 2); ph = Math.floor(pw / aspect); }
@@ -332,11 +325,37 @@ function initFlipBook(images){
     fw.style.width = (pw * 2) + 'px'; fw.style.height = ph + 'px';
 
     var els = flipItems.map(function(item, pi){
-      var isRight = (pi === 0) || (pi % 2 === 0 && pi !== 0);
-      var div;
-      if(item.side === 'L') div = halfImageDiv(item.img, 'L', pw, ph);
-      else if(item.side === 'R') div = halfImageDiv(item.img, 'R', pw, ph);
-      else div = fullImageDiv(item.img, pw, ph, isRight, pi);
+      var div = document.createElement('div');
+      div.style.cssText = 'width:' + pw + 'px;height:' + ph + 'px;overflow:hidden;background:#fff;position:relative;';
+      var src = item.canvas;
+      var scaleW = pw / src.width, scaleH = ph / src.height;
+      var scale = Math.max(scaleW, scaleH);
+      var dw = Math.round(src.width * scale), dh = Math.round(src.height * scale);
+      var ox = Math.round((pw - dw) / 2), oy = Math.round((ph - dh) / 2);
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      var resized = document.createElement('canvas');
+      resized.width = Math.round(pw * dpr); resized.height = Math.round(ph * dpr);
+      var rctx = resized.getContext('2d');
+      rctx.imageSmoothingEnabled = true; rctx.imageSmoothingQuality = 'high'; rctx.scale(dpr, dpr);
+      rctx.drawImage(src, 0, 0, src.width, src.height, ox, oy, dw, dh);
+
+      var shadowW = Math.round(pw * 0.07);
+      var isRightPage = (pi === 0) || (pi % 2 === 0 && pi !== 0);
+      var grad;
+      if(isRightPage){
+        grad = rctx.createLinearGradient(0, 0, shadowW, 0);
+        grad.addColorStop(0, 'rgba(0,0,0,0.28)'); grad.addColorStop(1, 'rgba(0,0,0,0)');
+        rctx.fillStyle = grad; rctx.fillRect(0, 0, shadowW, ph);
+      } else {
+        grad = rctx.createLinearGradient(pw, 0, pw - shadowW, 0);
+        grad.addColorStop(0, 'rgba(0,0,0,0.28)'); grad.addColorStop(1, 'rgba(0,0,0,0)');
+        rctx.fillStyle = grad; rctx.fillRect(pw - shadowW, 0, shadowW, ph);
+      }
+
+      var im = document.createElement('img');
+      im.style.cssText = 'width:100%;height:100%;display:block;';
+      im.src = resized.toDataURL('image/jpeg', 0.92);
+      div.appendChild(im);
       if(item.isCover || item.isBackCover) div.setAttribute('data-density', 'hard');
       return div;
     });
@@ -350,15 +369,15 @@ function initFlipBook(images){
     pageFlip.loadFromHTML(els);
     pageFlip.on('flip', function(e){ try{ updateUI(e.data); }catch(err){} });
     pageFlip.on('changeState', function(){ try{ updateUI(pageFlip.getCurrentPageIndex()); }catch(e){} });
-    buildThumbs(images);
+    buildThumbs(raws);
     updateUI(0);
   }catch(err){ console.error(err); }
 }
 
-function buildThumbs(images){
+function buildThumbs(raws){
   var strip = document.getElementById('thumb-strip');
   strip.innerHTML = '';
-  images.forEach(function(img, fi){
+  raws.forEach(function(c, fi){
     var startPage = 0;
     for(var i = 0; i < flipItems.length; i++){
       if(flipItems[i].srcIdx === fi && !flipItems[i].isBackCover){ startPage = i; break; }
@@ -367,8 +386,12 @@ function buildThumbs(images){
     th.className = 'vthumb' + (fi === 0 ? ' active' : '');
     th.dataset.srcIdx = fi;
     th.onclick = (function(idx){ return function(){ if(pageFlip) pageFlip.flip(idx); }; })(startPage);
+    var th_h = 40, th_w = Math.round(c.width / c.height * th_h);
+    var tc = document.createElement('canvas');
+    tc.width = th_w; tc.height = th_h;
+    tc.getContext('2d').drawImage(c, 0, 0, c.width, c.height, 0, 0, th_w, th_h);
     var tim = document.createElement('img');
-    tim.src = img.src;
+    tim.src = tc.toDataURL('image/jpeg', 0.8);
     th.appendChild(tim);
     strip.appendChild(th);
   });
