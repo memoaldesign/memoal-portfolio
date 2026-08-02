@@ -44,6 +44,8 @@ header{padding:36px 6vw 30px;display:flex;align-items:baseline;justify-content:s
 .album-card-noimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:11px;letter-spacing:.1em;}
 .album-card-title{margin-top:16px;font-family:var(--serif);font-size:16px;letter-spacing:.03em;}
 .album-card-meta{margin-top:4px;font-size:11px;color:var(--text2);letter-spacing:.06em;}
+.album-card-ig{display:inline-block;margin-top:6px;font-size:11px;letter-spacing:.05em;color:var(--accent);text-decoration:none;}
+.album-card-ig:hover{text-decoration:underline;}
 #empty-state,#error-state{display:none;text-align:center;padding:120px 0;color:var(--text2);font-size:13px;letter-spacing:.05em;}
 
 /* ── ビューア ── */
@@ -210,10 +212,22 @@ async function showGallery(){
       title.textContent = album.title;
       var meta = document.createElement('div');
       meta.className = 'album-card-meta';
-      meta.textContent = (album.fileCount || 0) + ' pages';
+      var metaBits = [(album.fileCount || 0) + ' pages'];
+      if(album.size) metaBits.push(album.size);
+      meta.textContent = metaBits.join(' ・ ');
       a.appendChild(thumbWrap);
       a.appendChild(title);
       a.appendChild(meta);
+      if(album.instagramUrl){
+        var ig = document.createElement('a');
+        ig.className = 'album-card-ig';
+        ig.href = album.instagramUrl;
+        ig.target = '_blank';
+        ig.rel = 'noopener';
+        ig.textContent = 'Instagram ↗';
+        ig.onclick = function(e){ e.stopPropagation(); };
+        a.appendChild(ig);
+      }
       grid.appendChild(a);
     });
   }catch(err){
