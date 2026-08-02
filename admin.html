@@ -198,7 +198,6 @@ header{padding:16px 32px;display:flex;align-items:center;justify-content:space-b
         ＋ ページを追加
         <input type="file" id="ps-add-fi" accept=".jpg,.jpeg,.png,.pdf" multiple style="display:none">
       </label>
-      <button class="ps-btn" onclick="swapCoverBackcover()">↔ 表紙を入れ替え</button>
       <button class="ps-btn" onclick="cancelPageSelect()">キャンセル</button>
       <button class="ps-btn ps-btn-primary" id="confirmPageSelect-label" onclick="confirmPageSelect()">この内容でプレビュー</button>
     </div>
@@ -257,12 +256,12 @@ header{padding:16px 32px;display:flex;align-items:center;justify-content:space-b
       <input type="text" id="reg-drive-url" placeholder="https://drive.google.com/drive/folders/...">
       <div class="drive-hint">※ フォルダを「リンクを知っている全員が閲覧可能」に設定してください</div>
     </div>
-    <div class="form-group">
+    <div class="form-group" id="cover-url-group">
       <label>カバー画像URL（任意）</label>
       <input type="text" id="reg-cover-url" placeholder="https://drive.google.com/uc?export=view&id=...">
       <div class="drive-hint">※ 省略可。Google DriveのファイルIDから生成できます</div>
     </div>
-    <div class="form-group">
+    <div class="form-group" id="file-count-group">
       <label>ページ数</label>
       <input type="number" id="reg-file-count" placeholder="例：16" min="1">
     </div>
@@ -402,6 +401,8 @@ function openEditModal(album){
   document.getElementById('modal-save').onclick=function(){saveEdit(album.id);};
   regSourceCanvases=null;
   document.getElementById('drive-upload-group').style.display='none';
+  document.getElementById('cover-url-group').style.display='block';
+  document.getElementById('file-count-group').style.display='block';
   document.getElementById('register-modal').classList.add('open');
 }
 
@@ -525,6 +526,8 @@ function openRegisterModal(){
   document.getElementById('modal-save').onclick=saveRegistration;
   regSourceCanvases=currentViewAlbum&&currentViewAlbum.canvases?currentViewAlbum.canvases:null;
   document.getElementById('drive-upload-group').style.display=regSourceCanvases?'block':'none';
+  document.getElementById('cover-url-group').style.display=regSourceCanvases?'none':'block';
+  document.getElementById('file-count-group').style.display=regSourceCanvases?'none':'block';
   document.getElementById('register-modal').classList.add('open');
 }
 function closeRegisterModal(){document.getElementById('register-modal').classList.remove('open');}
@@ -667,13 +670,6 @@ document.getElementById('ps-add-fi').addEventListener('change',async function(e)
   renderPageGrid();updatePsDesc();
   this.value='';
 });
-
-function swapCoverBackcover(){
-  if(psCanvases.length<2)return;
-  var first=psCanvases.shift(),firstOrig=psOriginalCanvases.shift(),firstRem=psRemoved.shift();
-  psCanvases.push(first);psOriginalCanvases.push(firstOrig);psRemoved.push(firstRem);
-  renderPageGrid();updatePsDesc();
-}
 
 function cancelPageSelect(){
   document.getElementById('page-select-view').style.display='none';
