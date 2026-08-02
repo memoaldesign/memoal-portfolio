@@ -153,7 +153,7 @@ function hideLoading(){
 }
 
 function driveThumb(id, size){
-  return API + '/image/' + id + '?sz=w' + (size || 1600);
+  return API + '/image/' + id + '?sz=w' + (size || 1200);
 }
 
 function loadImage(url, cors){
@@ -265,7 +265,7 @@ async function openAlbum(id){
     var loaded = 0;
     var results = new Array(ids.length);
     await Promise.all(ids.map(function(id, i){
-      return loadImage(driveThumb(id, 1600), true).then(function(img){
+      return loadImage(driveThumb(id, 1200), true).then(function(img){
         results[i] = imgToCanvas(img);
       }).catch(function(e){
         console.error('page load failed', id, e);
