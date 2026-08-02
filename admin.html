@@ -338,7 +338,7 @@ if(token){showMain();}
 // ── 登録済みアルバム ──
 async function loadRegistered(){
   try{
-    const res=await fetch(API+'/albums');
+    const res=await fetch(API+'/admin/albums',{headers:{Authorization:'Bearer '+token}});
     const data=await res.json();
     renderRegistered(data);
   }catch(e){
@@ -365,11 +365,17 @@ function renderRegistered(data){
     const title=document.createElement('div');
     title.className='reg-title';
     title.textContent=album.title;
+    const visBadge=document.createElement('div');
+    visBadge.style.cssText='font-size:11px;margin-bottom:4px;color:'+(album.hidden?'#c0392b':'var(--accent)')+';';
+    visBadge.textContent=album.hidden?'● 一覧に非表示':'● 一覧に表示中';
     const url=document.createElement('div');
     url.className='reg-url';
     url.textContent=album.driveUrl||'URLなし';
     const actions=document.createElement('div');
     actions.className='reg-actions';
+    const visBtn=document.createElement('button');
+    visBtn.textContent=album.hidden?'👁 一覧に表示する':'🙈 一覧から隠す';
+    visBtn.onclick=(function(a){return function(){toggleAlbumVisibility(a);};})(album);
     const editBtn=document.createElement('button');
     editBtn.textContent='✎ 情報編集';
     editBtn.onclick=(function(a){return function(){openEditModal(a);};})(album);
@@ -380,15 +386,27 @@ function renderRegistered(data){
     delBtn.textContent='削除';
     delBtn.className='del-btn';
     delBtn.onclick=(function(a){return function(){deleteAlbum(a.id);};})(album);
+    actions.appendChild(visBtn);
     actions.appendChild(editBtn);
     actions.appendChild(reeditBtn);
     actions.appendChild(delBtn);
     info.appendChild(title);
+    info.appendChild(visBadge);
     info.appendChild(url);
     info.appendChild(actions);
     card.appendChild(info);
     grid.appendChild(card);
   });
+}
+
+async function toggleAlbumVisibility(album){
+  const newHidden=!album.hidden;
+  const res=await fetch(API+'/admin/albums/'+album.id,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({hidden:newHidden})});
+  if(res.ok){
+    loadRegistered();
+  } else {
+    alert('切り替えに失敗しました');
+  }
 }
 
 async function deleteAlbum(id){
