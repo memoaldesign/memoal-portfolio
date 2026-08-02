@@ -567,9 +567,22 @@ async function saveRegistration(){
   const fileCount=parseInt(document.getElementById('reg-file-count').value)||0;
   if(!title){alert('タイトルを入力してください');return;}
   if(!driveUrl){alert('Google DriveのフォルダURLを入力してください');return;}
+  // 同じアルバムを既に公開登録済みなら、新規作成せず更新する
+  if(currentViewAlbum&&currentViewAlbum.publishedId){
+    const putRes=await fetch(API+'/admin/albums/'+currentViewAlbum.publishedId,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({title,driveUrl,coverUrl,fileCount})});
+    if(putRes.ok){
+      alert('「'+title+'」の公開内容を更新しました！');
+      closeRegisterModal();
+      loadRegistered();
+    } else {
+      alert('更新に失敗しました');
+    }
+    return;
+  }
   const res=await fetch(API+'/admin/albums',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({title,driveUrl,coverUrl,fileCount})});
   const data=await res.json();
   if(data.id){
+    if(currentViewAlbum)currentViewAlbum.publishedId=data.id;
     alert('「'+title+'」を公開登録しました！');
     closeRegisterModal();
     loadRegistered();
