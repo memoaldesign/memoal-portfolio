@@ -247,7 +247,7 @@ async function openAlbum(id){
     }
     hideLoading();
     if(!images.length){ alert('写真の読み込みに失敗しました。'); showGallery(); return; }
-    initFlipBook(images);
+    requestAnimationFrame(function(){requestAnimationFrame(function(){initFlipBook(images);});});
   }catch(err){
     hideLoading();
     console.error(err);
@@ -388,8 +388,8 @@ function updateUI(idx){
 document.getElementById('btn-back').addEventListener('click', function(){
   history.pushState({}, '', location.pathname);
   if(pageFlip){ try{ pageFlip.destroy(); }catch(e){} pageFlip = null; }
-  document.getElementById('flip-wrap').innerHTML = '';
-  document.getElementById('thumb-strip').innerHTML = '';
+  var fw=document.getElementById('flip-wrap'); if(fw) fw.innerHTML = '';
+  var ts=document.getElementById('thumb-strip'); if(ts) ts.innerHTML = '';
   showGallery();
 });
 document.getElementById('btn-prev').addEventListener('click', function(){ if(pageFlip) pageFlip.flipPrev('top'); });
