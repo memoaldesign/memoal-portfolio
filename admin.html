@@ -258,7 +258,7 @@ header{padding:16px 32px;display:flex;align-items:center;justify-content:space-b
     </div>
     <div class="form-group" id="cover-url-group">
       <label>カバー画像URL（任意）</label>
-      <input type="text" id="reg-cover-url" placeholder="https://drive.google.com/uc?export=view&id=...">
+      <input type="text" id="reg-cover-url" placeholder="https://drive.google.com/thumbnail?id=...&sz=w1000">
       <div class="drive-hint">※ 省略可。Google DriveのファイルIDから生成できます</div>
     </div>
     <div class="form-group" id="file-count-group">
@@ -462,6 +462,19 @@ async function driveShareFolder(folderId,token){
   });
 }
 
+async function driveClearFolder(folderId,token){
+  var q=encodeURIComponent("'"+folderId+"' in parents and trashed=false");
+  var res=await fetch('https://www.googleapis.com/drive/v3/files?q='+q+'&fields=files(id)&pageSize=1000',{
+    headers:{'Authorization':'Bearer '+token}
+  });
+  var data=await res.json();
+  if(data.files&&data.files.length){
+    for(var i=0;i<data.files.length;i++){
+      await fetch('https://www.googleapis.com/drive/v3/files/'+data.files[i].id,{method:'DELETE',headers:{'Authorization':'Bearer '+token}});
+    }
+  }
+}
+
 function canvasToBlob(canvas,quality){
   return new Promise(function(resolve){canvas.toBlob(resolve,'image/jpeg',quality||0.95);});
 }
@@ -492,23 +505,38 @@ async function uploadAlbumToDrive(){
   try{
     showLoading('Googleアカウントにログイン中...',0);
     var token=await ensureDriveAuth();
-    setLoading('Driveフォルダを作成中...',5);
-    var folderId=await driveCreateFolder(title,token);
-    await driveShareFolder(folderId,token);
+    setLoading('Driveフォルダを確認中...',5);
+    // 同じアルバムに紐づく既存フォルダがあれば再利用（新規フォルダを重複作成しない）
+    var folderId=currentViewAlbum&&currentViewAlbum.driveFolderId;
+    var reused=!!folderId;
+    if(!folderId){
+      var existingUrl=document.getElementById('reg-drive-url').value.trim();
+      var m=existingUrl.match(/folders\/([a-zA-Z0-9_-]+)/);
+      if(m){folderId=m[1];reused=true;}
+    }
+    if(!folderId){
+      folderId=await driveCreateFolder(title,token);
+      await driveShareFolder(folderId,token);
+    } else if(reused){
+      setLoading('既存フォルダの中身を入れ替え中...',8);
+      await driveClearFolder(folderId,token);
+    }
+    if(currentViewAlbum)currentViewAlbum.driveFolderId=folderId;
     var canvases=regSourceCanvases;
     var firstFileId=null;
     for(var i=0;i<canvases.length;i++){
-      setLoading('Driveにアップロード中… '+(i+1)+' / '+canvases.length,5+((i+1)/canvases.length)*90);
+      setLoading('Driveにアップロード中… '+(i+1)+' / '+canvases.length,10+((i+1)/canvases.length)*85);
       var blob=await canvasToBlob(canvases[i],0.85);
       var filename='page-'+String(i+1).padStart(2,'0')+'.jpg';
       var uploaded=await driveUploadFile(blob,filename,folderId,token);
       if(i===0)firstFileId=uploaded.id;
     }
-    hideLoading();
     document.getElementById('reg-drive-url').value='https://drive.google.com/drive/folders/'+folderId;
-    if(firstFileId)document.getElementById('reg-cover-url').value='https://drive.google.com/uc?export=view&id='+firstFileId;
+    if(firstFileId)document.getElementById('reg-cover-url').value='https://drive.google.com/thumbnail?id='+firstFileId+'&sz=w1000';
     document.getElementById('reg-file-count').value=canvases.length;
-    alert('Driveへのアップロードが完了しました。内容を確認して「登録して公開」を押してください。');
+    setLoading('公開登録中...',98);
+    await saveRegistration();
+    hideLoading();
   }catch(err){
     hideLoading();
     console.error(err);
