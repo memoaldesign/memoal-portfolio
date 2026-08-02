@@ -546,13 +546,16 @@ async function uploadAlbumToDrive(){
     if(currentViewAlbum)currentViewAlbum.driveFolderId=folderId;
     var canvases=regSourceCanvases;
     var firstFileId=null;
+    var pageIds=[];
     for(var i=0;i<canvases.length;i++){
       setLoading('Driveにアップロード中… '+(i+1)+' / '+canvases.length,10+((i+1)/canvases.length)*85);
       var blob=await canvasToBlob(canvases[i],0.85);
       var filename='page-'+String(i+1).padStart(2,'0')+'.jpg';
       var uploaded=await driveUploadFile(blob,filename,folderId,token);
+      pageIds.push(uploaded.id);
       if(i===0)firstFileId=uploaded.id;
     }
+    if(currentViewAlbum)currentViewAlbum.pageIds=pageIds;
     document.getElementById('reg-drive-url').value='https://drive.google.com/drive/folders/'+folderId;
     if(firstFileId)document.getElementById('reg-cover-url').value='https://drive.google.com/thumbnail?id='+firstFileId+'&sz=w1000';
     document.getElementById('reg-file-count').value=canvases.length;
@@ -589,9 +592,10 @@ async function saveRegistration(){
   const fileCount=parseInt(document.getElementById('reg-file-count').value)||0;
   if(!title){alert('タイトルを入力してください');return;}
   if(!driveUrl){alert('Google DriveのフォルダURLを入力してください');return;}
+  const pageIds=(currentViewAlbum&&currentViewAlbum.pageIds)||undefined;
   // 同じアルバムを既に公開登録済みなら、新規作成せず更新する
   if(currentViewAlbum&&currentViewAlbum.publishedId){
-    const putRes=await fetch(API+'/admin/albums/'+currentViewAlbum.publishedId,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({title,driveUrl,coverUrl,fileCount})});
+    const putRes=await fetch(API+'/admin/albums/'+currentViewAlbum.publishedId,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({title,driveUrl,coverUrl,fileCount,pageIds})});
     if(putRes.ok){
       alert('「'+title+'」の公開内容を更新しました！');
       closeRegisterModal();
@@ -601,7 +605,7 @@ async function saveRegistration(){
     }
     return;
   }
-  const res=await fetch(API+'/admin/albums',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({title,driveUrl,coverUrl,fileCount})});
+  const res=await fetch(API+'/admin/albums',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({title,driveUrl,coverUrl,fileCount,pageIds})});
   const data=await res.json();
   if(data.id){
     if(currentViewAlbum)currentViewAlbum.publishedId=data.id;
