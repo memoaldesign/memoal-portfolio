@@ -53,12 +53,12 @@ header{padding:16px 32px;display:flex;align-items:center;justify-content:space-b
 .registered-label{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:20px;}
 #registered-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:24px;}
 .reg-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
-.reg-thumb{width:100%;aspect-ratio:3/2;background:var(--bg2);object-fit:cover;display:block;}
+.reg-thumb{width:100%;max-height:260px;background:var(--bg2);object-fit:contain;display:block;}
 .reg-info{padding:12px 14px;}
 .reg-title{font-size:14px;font-weight:500;margin-bottom:4px;}
 .reg-url{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px;}
-.reg-actions{display:flex;gap:8px;}
-.reg-actions button{flex:1;padding:6px;border:1px solid var(--border);background:none;border-radius:5px;font-size:12px;cursor:pointer;color:var(--text2);}
+.reg-actions{display:flex;flex-wrap:wrap;gap:8px;}
+.reg-actions button{flex:1 1 auto;min-width:80px;padding:6px;border:1px solid var(--border);background:none;border-radius:5px;font-size:12px;cursor:pointer;color:var(--text2);}
 .reg-actions button:hover{background:var(--bg2);}
 .reg-actions .del-btn:hover{color:#c0392b;border-color:#c0392b;}
 
@@ -288,7 +288,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/p
 
 var token=localStorage.getItem('memoal_admin_token')||'';
 var albums=[],pageFlip=null,stpageItems=[],currentViewAlbum=null;
-var psCanvases=[],psOriginalCanvases=[],psTitle='',psRemoved=[],psEditAlbum=null;
+var psCanvases=[],psOriginalCanvases=[],psTitle='',psRemoved=[],psEditAlbum=null,psReeditMeta=null;
 var dragSrcIdx=null;
 var cropTargetIdx=null,cropDrag={active:false,sx:0,sy:0,ex:0,ey:0};
 var cropImgNaturalW=0,cropImgNaturalH=0;
@@ -371,13 +371,17 @@ function renderRegistered(data){
     const actions=document.createElement('div');
     actions.className='reg-actions';
     const editBtn=document.createElement('button');
-    editBtn.textContent='✎ 編集';
+    editBtn.textContent='✎ 情報編集';
     editBtn.onclick=(function(a){return function(){openEditModal(a);};})(album);
+    const reeditBtn=document.createElement('button');
+    reeditBtn.textContent='🔄 写真を編集し直す';
+    reeditBtn.onclick=(function(a){return function(){loadAlbumForReedit(a);};})(album);
     const delBtn=document.createElement('button');
     delBtn.textContent='削除';
     delBtn.className='del-btn';
     delBtn.onclick=(function(a){return function(){deleteAlbum(a.id);};})(album);
     actions.appendChild(editBtn);
+    actions.appendChild(reeditBtn);
     actions.appendChild(delBtn);
     info.appendChild(title);
     info.appendChild(url);
@@ -665,6 +669,55 @@ function openPageSelect(canvases,defaultTitle){
   renderPageGrid();updatePsDesc();
 }
 
+function blobToCanvas(blob){
+  return new Promise(function(resolve,reject){
+    var url=URL.createObjectURL(blob);
+    var img=new Image();
+    img.onload=function(){
+      var c=document.createElement('canvas');
+      c.width=img.naturalWidth;c.height=img.naturalHeight;
+      c.getContext('2d').drawImage(img,0,0);
+      URL.revokeObjectURL(url);
+      resolve(c);
+    };
+    img.onerror=function(){URL.revokeObjectURL(url);reject(new Error('画像の読み込みに失敗しました'));};
+    img.src=url;
+  });
+}
+
+async function loadAlbumForReedit(album){
+  try{
+    showLoading('Googleアカウントにログイン中...',0);
+    var token=await ensureDriveAuth();
+    var m=(album.driveUrl||'').match(/folders\/([a-zA-Z0-9_-]+)/);
+    if(!m){hideLoading();alert('このアルバムのGoogle DriveフォルダURLの形式が正しくないため、読み込めません。');return;}
+    var folderId=m[1];
+    setLoading('Drive内の写真を確認中...',5);
+    var q=encodeURIComponent("'"+folderId+"' in parents and trashed=false");
+    var listRes=await fetch('https://www.googleapis.com/drive/v3/files?q='+q+'&orderBy=name&fields=files(id,name)&pageSize=1000',{headers:{'Authorization':'Bearer '+token}});
+    var listData=await listRes.json();
+    if(!listRes.ok){hideLoading();alert('Driveの読み込みに失敗しました: '+(listData.error&&listData.error.message||listRes.status));return;}
+    var files=(listData.files||[]).filter(function(f){return /\.(jpe?g|png)$/i.test(f.name);});
+    files.sort(function(a,b){return a.name.localeCompare(b.name,undefined,{numeric:true});});
+    if(!files.length){hideLoading();alert('このフォルダに画像ファイルが見つかりませんでした。');return;}
+    var canvases=[];
+    for(var i=0;i<files.length;i++){
+      setLoading('写真を読み込み中… '+(i+1)+' / '+files.length,5+((i+1)/files.length)*90);
+      var imgRes=await fetch('https://www.googleapis.com/drive/v3/files/'+files[i].id+'?alt=media',{headers:{'Authorization':'Bearer '+token}});
+      if(!imgRes.ok)throw new Error('画像の取得に失敗しました: '+files[i].name);
+      var blob=await imgRes.blob();
+      canvases.push(await blobToCanvas(blob));
+    }
+    hideLoading();
+    psReeditMeta={driveFolderId:folderId,publishedId:album.id};
+    openPageSelect(canvases,album.title);
+  }catch(err){
+    hideLoading();
+    console.error(err);
+    alert('読み込みに失敗しました: '+(err&&err.message||err));
+  }
+}
+
 function openPageEdit(album){
   psEditAlbum=album;
   psCanvases=album.canvases.slice();
@@ -727,10 +780,19 @@ function confirmPageSelect(){
     document.getElementById('gallery-view').style.display='block';
     renderGallery();return;
   }
-  var title=prompt('アルバムのタイトルを入力してください',psTitle);
-  if(title===null)return;
-  title=title.trim()||psTitle;
-  albums.unshift({id:Date.now().toString(36),title:title,canvases:finalCanvases});
+  var title=psTitle;
+  if(!psReeditMeta){
+    title=prompt('アルバムのタイトルを入力してください',psTitle);
+    if(title===null)return;
+    title=title.trim()||psTitle;
+  }
+  var newAlbum={id:Date.now().toString(36),title:title,canvases:finalCanvases};
+  if(psReeditMeta){
+    newAlbum.driveFolderId=psReeditMeta.driveFolderId;
+    newAlbum.publishedId=psReeditMeta.publishedId;
+    psReeditMeta=null;
+  }
+  albums.unshift(newAlbum);
   document.getElementById('page-select-view').style.display='none';
   document.getElementById('gallery-view').style.display='block';
   renderGallery();
