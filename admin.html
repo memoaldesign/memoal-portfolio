@@ -374,7 +374,7 @@ function renderRegistered(data){
     editBtn.textContent='✎ 情報編集';
     editBtn.onclick=(function(a){return function(){openEditModal(a);};})(album);
     const reeditBtn=document.createElement('button');
-    reeditBtn.textContent='🔄 写真を編集し直す';
+    reeditBtn.textContent='🔄 ページ編集';
     reeditBtn.onclick=(function(a){return function(){loadAlbumForReedit(a);};})(album);
     const delBtn=document.createElement('button');
     delBtn.textContent='削除';
@@ -711,6 +711,8 @@ async function loadAlbumForReedit(album){
     hideLoading();
     psReeditMeta={driveFolderId:folderId,publishedId:album.id};
     openPageSelect(canvases,album.title);
+    document.getElementById('ps-title').textContent='「'+album.title+'」のページを編集';
+    document.getElementById('confirmPageSelect-label').textContent='更新して公開';
   }catch(err){
     hideLoading();
     console.error(err);
@@ -771,7 +773,7 @@ function cancelPageSelect(){
   psCanvases=[];psEditAlbum=null;
 }
 
-function confirmPageSelect(){
+async function confirmPageSelect(){
   var finalCanvases=psCanvases.filter(function(_,i){return !psRemoved[i];});
   if(!finalCanvases.length){alert('1ページ以上選択してください');return;}
   if(psEditAlbum){
@@ -780,19 +782,23 @@ function confirmPageSelect(){
     document.getElementById('gallery-view').style.display='block';
     renderGallery();return;
   }
-  var title=psTitle;
-  if(!psReeditMeta){
-    title=prompt('アルバムのタイトルを入力してください',psTitle);
-    if(title===null)return;
-    title=title.trim()||psTitle;
-  }
-  var newAlbum={id:Date.now().toString(36),title:title,canvases:finalCanvases};
   if(psReeditMeta){
-    newAlbum.driveFolderId=psReeditMeta.driveFolderId;
-    newAlbum.publishedId=psReeditMeta.publishedId;
-    psReeditMeta=null;
+    var meta=psReeditMeta;psReeditMeta=null;
+    currentViewAlbum={title:psTitle,canvases:finalCanvases,driveFolderId:meta.driveFolderId,publishedId:meta.publishedId};
+    regSourceCanvases=finalCanvases;
+    document.getElementById('reg-title').value=psTitle;
+    document.getElementById('reg-drive-url').value='https://drive.google.com/drive/folders/'+meta.driveFolderId;
+    document.getElementById('reg-cover-url').value='';
+    document.getElementById('reg-file-count').value=finalCanvases.length;
+    document.getElementById('page-select-view').style.display='none';
+    document.getElementById('gallery-view').style.display='block';
+    await uploadAlbumToDrive();
+    return;
   }
-  albums.unshift(newAlbum);
+  var title=prompt('アルバムのタイトルを入力してください',psTitle);
+  if(title===null)return;
+  title=title.trim()||psTitle;
+  albums.unshift({id:Date.now().toString(36),title:title,canvases:finalCanvases});
   document.getElementById('page-select-view').style.display='none';
   document.getElementById('gallery-view').style.display='block';
   renderGallery();
@@ -816,7 +822,8 @@ function renderPageGrid(){
     var scale=THUMB_H/c.height;
     tc.width=Math.round(c.width*scale);tc.height=THUMB_H;
     tc.getContext('2d').drawImage(c,0,0,tc.width,tc.height);
-    var num=document.createElement('div');num.className='pg-num';num.textContent='p.'+(i+1);
+    var num=document.createElement('div');num.className='pg-num';
+    if(i===0){num.textContent='裏表紙 - 表紙';}else{num.style.display='none';}
     var del=document.createElement('button');del.className='pg-del';
     del.onclick=(function(idx){return function(e){e.stopPropagation();psRemoved[idx]=!psRemoved[idx];renderPageGrid();updatePsDesc();};})(i);
     del.textContent=psRemoved[i]?'↩':'✕';
