@@ -53,6 +53,10 @@ header{padding:36px 6vw 30px;display:flex;align-items:baseline;justify-content:s
 #btn-back:hover{background:var(--bg2);}
 #viewer-title{flex:1;font-family:var(--serif);font-size:16px;letter-spacing:.03em;text-align:center;}
 #viewer-pageinfo{font-size:11px;color:var(--text2);letter-spacing:.05em;min-width:64px;text-align:right;}
+#viewer-meta{display:flex;justify-content:center;align-items:center;gap:14px;padding:0 6vw 14px;font-size:11px;color:var(--text2);letter-spacing:.05em;}
+#viewer-meta a{color:var(--accent);text-decoration:none;}
+#viewer-meta a:hover{text-decoration:underline;}
+#viewer-meta:empty{display:none;}
 #viewer-controls{display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 16px 22px;}
 #viewer-controls button{background:none;border:1px solid var(--border);border-radius:20px;padding:8px 20px;font-size:12px;letter-spacing:.05em;cursor:pointer;color:var(--text);transition:background .15s;font-family:var(--sans);}
 #viewer-controls button:hover:not(:disabled){background:var(--bg2);}
@@ -105,6 +109,7 @@ footer{padding:40px 6vw 60px;text-align:center;font-size:10px;letter-spacing:.12
     <div id="viewer-title"></div>
     <div id="viewer-pageinfo"></div>
   </div>
+  <div id="viewer-meta"></div>
   <div id="viewer-controls">
     <button id="btn-first">« 最初</button>
     <button id="btn-prev">← 前へ</button>
@@ -228,6 +233,10 @@ async function openAlbum(id){
     var album = await res.json();
     currentAlbum = album;
     document.getElementById('viewer-title').textContent = album.title;
+    var metaParts = [];
+    if(album.size) metaParts.push('<span>' + album.size.replace(/</g,'&lt;') + '</span>');
+    if(album.instagramUrl) metaParts.push('<a href="' + album.instagramUrl.replace(/"/g,'&quot;') + '" target="_blank" rel="noopener">Instagram ↗</a>');
+    document.getElementById('viewer-meta').innerHTML = metaParts.join('<span>・</span>');
     var ids = album.pageIds || [];
     if(!ids.length){
       hideLoading();
@@ -236,16 +245,19 @@ async function openAlbum(id){
       showGallery();
       return;
     }
-    var canvases = [];
-    for(var i = 0; i < ids.length; i++){
-      setLoading('写真を読み込み中… ' + (i + 1) + ' / ' + ids.length, ((i + 1) / ids.length) * 100);
-      try{
-        var img = await loadImage(driveThumb(ids[i], 1600), true);
-        canvases.push(imgToCanvas(img));
-      }catch(e){
-        console.error('page load failed', ids[i], e);
-      }
-    }
+    var loaded = 0;
+    var results = new Array(ids.length);
+    await Promise.all(ids.map(function(id, i){
+      return loadImage(driveThumb(id, 1600), true).then(function(img){
+        results[i] = imgToCanvas(img);
+      }).catch(function(e){
+        console.error('page load failed', id, e);
+      }).finally(function(){
+        loaded++;
+        setLoading('写真を読み込み中… ' + loaded + ' / ' + ids.length, (loaded / ids.length) * 100);
+      });
+    }));
+    var canvases = results.filter(function(c){ return !!c; });
     hideLoading();
     if(!canvases.length){ alert('写真の読み込みに失敗しました。'); showGallery(); return; }
     requestAnimationFrame(function(){requestAnimationFrame(function(){initFlipBook(canvases);});});
