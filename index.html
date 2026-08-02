@@ -218,15 +218,15 @@ async function showGallery(){
       a.appendChild(thumbWrap);
       a.appendChild(title);
       a.appendChild(meta);
-      if(album.instagramUrl){
-        var ig = document.createElement('a');
-        ig.className = 'album-card-ig';
-        ig.href = album.instagramUrl;
-        ig.target = '_blank';
-        ig.rel = 'noopener';
-        ig.textContent = 'Instagram ↗';
-        ig.onclick = function(e){ e.stopPropagation(); };
-        a.appendChild(ig);
+      if(album.studioUrl){
+        var studioLink = document.createElement('a');
+        studioLink.className = 'album-card-ig';
+        studioLink.href = album.studioUrl;
+        studioLink.target = '_blank';
+        studioLink.rel = 'noopener';
+        studioLink.textContent = (album.studioName || '詳しく見る') + ' ↗';
+        studioLink.onclick = function(e){ e.stopPropagation(); };
+        a.appendChild(studioLink);
       }
       grid.appendChild(a);
     });
@@ -249,7 +249,10 @@ async function openAlbum(id){
     document.getElementById('viewer-title').textContent = album.title;
     var metaParts = [];
     if(album.size) metaParts.push('<span>' + album.size.replace(/</g,'&lt;') + '</span>');
-    if(album.instagramUrl) metaParts.push('<a href="' + album.instagramUrl.replace(/"/g,'&quot;') + '" target="_blank" rel="noopener">Instagram ↗</a>');
+    if(album.studioUrl){
+      var studioLabel = (album.studioName ? album.studioName.replace(/</g,'&lt;') : '詳しく見る') + ' ↗';
+      metaParts.push('<a href="' + album.studioUrl.replace(/"/g,'&quot;') + '" target="_blank" rel="noopener">' + studioLabel + '</a>');
+    }
     document.getElementById('viewer-meta').innerHTML = metaParts.join('<span>・</span>');
     var ids = album.pageIds || [];
     if(!ids.length){
