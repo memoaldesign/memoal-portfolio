@@ -333,9 +333,12 @@ function initFlipBook(images){
 
     var els = flipItems.map(function(item, pi){
       var isRight = (pi === 0) || (pi % 2 === 0 && pi !== 0);
-      if(item.side === 'L') return halfImageDiv(item.img, 'L', pw, ph);
-      if(item.side === 'R') return halfImageDiv(item.img, 'R', pw, ph);
-      return fullImageDiv(item.img, pw, ph, isRight, pi);
+      var div;
+      if(item.side === 'L') div = halfImageDiv(item.img, 'L', pw, ph);
+      else if(item.side === 'R') div = halfImageDiv(item.img, 'R', pw, ph);
+      else div = fullImageDiv(item.img, pw, ph, isRight, pi);
+      if(item.isCover || item.isBackCover) div.setAttribute('data-density', 'hard');
+      return div;
     });
 
     pageFlip = new St.PageFlip(fw, {
