@@ -446,7 +446,10 @@ async function driveCreateFolder(name,token){
     body:JSON.stringify({name:name,mimeType:'application/vnd.google-apps.folder'})
   });
   var data=await res.json();
-  if(!data.id)throw new Error('フォルダ作成に失敗しました');
+  if(!res.ok||!data.id){
+    console.error('driveCreateFolder failed',res.status,data);
+    throw new Error('フォルダ作成に失敗しました: '+(data.error&&data.error.message||res.status));
+  }
   return data.id;
 }
 
@@ -467,12 +470,17 @@ async function driveUploadFile(blob,filename,folderId,token){
   var form=new FormData();
   form.append('metadata',new Blob([JSON.stringify(metadata)],{type:'application/json'}));
   form.append('file',blob);
-  var res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{
+  var res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name',{
     method:'POST',
     headers:{'Authorization':'Bearer '+token},
     body:form
   });
-  return await res.json();
+  var data=await res.json();
+  if(!res.ok||!data.id){
+    console.error('driveUploadFile failed',filename,res.status,data);
+    throw new Error('アップロード失敗: '+filename+' ('+(data.error&&data.error.message||res.status)+')');
+  }
+  return data;
 }
 
 async function uploadAlbumToDrive(){
@@ -490,10 +498,10 @@ async function uploadAlbumToDrive(){
     var firstFileId=null;
     for(var i=0;i<canvases.length;i++){
       setLoading('Driveにアップロード中… '+(i+1)+' / '+canvases.length,5+((i+1)/canvases.length)*90);
-      var blob=await canvasToBlob(canvases[i],0.95);
+      var blob=await canvasToBlob(canvases[i],0.85);
       var filename='page-'+String(i+1).padStart(2,'0')+'.jpg';
       var uploaded=await driveUploadFile(blob,filename,folderId,token);
-      if(i===0&&uploaded.id)firstFileId=uploaded.id;
+      if(i===0)firstFileId=uploaded.id;
     }
     hideLoading();
     document.getElementById('reg-drive-url').value='https://drive.google.com/drive/folders/'+folderId;
@@ -503,7 +511,7 @@ async function uploadAlbumToDrive(){
   }catch(err){
     hideLoading();
     console.error(err);
-    alert('アップロードに失敗しました。時間をおいて再度お試しください。');
+    alert('アップロードに失敗しました: '+(err&&err.message||err));
   }
 }
 
@@ -856,8 +864,8 @@ function closeViewer(){
   currentViewAlbum=null;
   if(pageFlip){try{pageFlip.destroy();}catch(e){}pageFlip=null;}
   stpageItems=[];
-  document.getElementById('flip-wrap').innerHTML='';
-  document.getElementById('thumb-strip').innerHTML='';
+  var fw=document.getElementById('flip-wrap');if(fw)fw.innerHTML='';
+  var ts=document.getElementById('thumb-strip');if(ts)ts.innerHTML='';
   document.getElementById('viewer-view').style.display='none';
   document.getElementById('gallery-view').style.display='block';
   renderGallery();
