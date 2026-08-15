@@ -280,6 +280,13 @@ header{padding:16px 32px;display:flex;align-items:center;justify-content:space-b
       <button id="modal-cancel" onclick="closeRegisterModal()">キャンセル</button>
       <button id="modal-save" onclick="saveRegistration()">登録して公開</button>
     </div>
+    <!-- アップロード進行状況（アップロード中のみ表示） -->
+    <div id="modal-progress" style="display:none;margin-top:16px;">
+      <div id="modal-progress-text" style="font-size:13px;color:var(--text2);margin-bottom:8px;text-align:center;">アップロード中...</div>
+      <div style="background:var(--bg2);border-radius:4px;height:6px;overflow:hidden;">
+        <div id="modal-progress-bar" style="height:100%;background:var(--accent);width:0%;transition:width .2s;border-radius:4px;"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -543,10 +550,27 @@ async function uploadAlbumToDrive(){
   if(GOOGLE_CLIENT_ID.indexOf('YOUR_CLIENT_ID')===0){alert('GOOGLE_CLIENT_ID が未設定です。管理者にGoogle Cloud ConsoleでのOAuth設定を確認してください。');return;}
   var title=document.getElementById('reg-title').value.trim();
   if(!title){alert('先にアルバムタイトルを入力してください');return;}
+
+  // モーダル内プログレスバーを表示してボタンを無効化
+  function setModalProgress(msg, pct){
+    document.getElementById('modal-progress').style.display='block';
+    document.getElementById('modal-progress-text').textContent=msg;
+    document.getElementById('modal-progress-bar').style.width=pct+'%';
+  }
+  function resetModalProgress(){
+    document.getElementById('modal-progress').style.display='none';
+    document.getElementById('modal-progress-bar').style.width='0%';
+  }
+  var saveBtn=document.getElementById('modal-save');
+  var cancelBtn=document.getElementById('modal-cancel');
+  saveBtn.disabled=true;
+  saveBtn.textContent='アップロード中...';
+  cancelBtn.disabled=true;
+
   try{
-    showLoading('Googleアカウントにログイン中...',0);
+    setModalProgress('Googleアカウントにログイン中...',0);
     var token=await ensureDriveAuth();
-    setLoading('Driveフォルダを確認中...',5);
+    setModalProgress('Driveフォルダを確認中...',5);
     // 同じアルバムに紐づく既存フォルダがあれば再利用（新規フォルダを重複作成しない）
     var folderId=currentViewAlbum&&currentViewAlbum.driveFolderId;
     var reused=!!folderId;
@@ -559,7 +583,7 @@ async function uploadAlbumToDrive(){
       folderId=await driveCreateFolder(title,token);
       await driveShareFolder(folderId,token);
     } else if(reused){
-      setLoading('既存フォルダの中身を入れ替え中...',8);
+      setModalProgress('既存フォルダの中身を入れ替え中...',8);
       await driveClearFolder(folderId,token);
     }
     if(currentViewAlbum)currentViewAlbum.driveFolderId=folderId;
@@ -567,7 +591,7 @@ async function uploadAlbumToDrive(){
     var firstFileId=null;
     var pageIds=[];
     for(var i=0;i<canvases.length;i++){
-      setLoading('Driveにアップロード中… '+(i+1)+' / '+canvases.length,10+((i+1)/canvases.length)*85);
+      setModalProgress('Driveにアップロード中… '+(i+1)+' / '+canvases.length, 10+((i+1)/canvases.length)*85);
       var blob=await canvasToBlob(canvases[i],0.85);
       var filename='page-'+String(i+1).padStart(2,'0')+'.jpg';
       var uploaded=await driveUploadFile(blob,filename,folderId,token);
@@ -578,13 +602,17 @@ async function uploadAlbumToDrive(){
     document.getElementById('reg-drive-url').value='https://drive.google.com/drive/folders/'+folderId;
     if(firstFileId)document.getElementById('reg-cover-url').value='https://drive.google.com/thumbnail?id='+firstFileId+'&sz=w1000';
     document.getElementById('reg-file-count').value=canvases.length;
-    setLoading('公開登録中...',98);
+    setModalProgress('公開登録中...',98);
     await saveRegistration();
-    hideLoading();
+    resetModalProgress();
   }catch(err){
-    hideLoading();
+    resetModalProgress();
     console.error(err);
     alert('アップロードに失敗しました: '+(err&&err.message||err));
+  } finally {
+    saveBtn.disabled=false;
+    saveBtn.textContent='📤 Google Driveにアップロード';
+    cancelBtn.disabled=false;
   }
 }
 
