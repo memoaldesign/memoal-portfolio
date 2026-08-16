@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>アルバムフリップブック セットアップガイド</title>
+<style>
+:root{
+  --accent:#8b7355;--accent2:#c4a882;--bg:#faf8f5;--surface:#fff;
+  --text:#1a1a18;--text2:#6b6960;--border:#e8e4de;
+  --green:#2d7a4f;--blue:#2563eb;--red:#c0392b;--orange:#b45309;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Hiragino Sans',sans-serif;background:var(--bg);color:var(--text);line-height:1.8;font-size:15px;}
+
+.cover{background:linear-gradient(135deg,#1a1a18 0%,#3a3530 100%);color:#fff;padding:80px 48px;text-align:center;}
+.cover-logo{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--accent2);margin-bottom:20px;}
+.cover h1{font-size:30px;font-weight:300;margin-bottom:10px;}
+.cover h1 strong{font-weight:700;display:block;font-size:38px;margin-bottom:10px;}
+.cover-sub{font-size:13px;color:rgba(255,255,255,.55);line-height:1.9;}
+.cover-badge{display:inline-block;background:var(--accent);padding:5px 18px;border-radius:20px;font-size:12px;margin-top:22px;letter-spacing:.08em;}
+
+.container{max-width:820px;margin:0 auto;padding:56px 36px;}
+.section{margin-bottom:72px;}
+.section-title{display:flex;align-items:center;gap:12px;font-size:20px;font-weight:700;margin-bottom:24px;padding-bottom:12px;border-bottom:2px solid var(--accent2);}
+.section-num{display:flex;align-items:center;justify-content:center;width:34px;height:34px;background:var(--accent);color:#fff;border-radius:50%;font-size:14px;font-weight:700;flex-shrink:0;}
+h3{font-size:15px;font-weight:700;margin:28px 0 10px;color:var(--accent);}
+p{font-size:14px;color:var(--text2);line-height:1.8;margin-bottom:10px;}
+
+a.link{color:var(--blue);text-decoration:none;border-bottom:1px solid rgba(37,99,235,.3);padding-bottom:1px;font-family:monospace;font-size:13px;}
+a.link:hover{border-bottom-color:var(--blue);}
+
+.flow{display:flex;align-items:center;gap:4px;margin:24px 0;flex-wrap:wrap;}
+.flow-step{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:14px 12px;text-align:center;min-width:110px;flex:1;box-shadow:0 2px 6px rgba(0,0,0,.05);}
+.flow-step .icon{font-size:26px;margin-bottom:6px;}
+.flow-step .label{font-size:11px;font-weight:700;color:var(--text);line-height:1.4;}
+.flow-step .sub{font-size:10px;color:var(--text2);margin-top:2px;}
+.flow-arrow{font-size:18px;color:var(--accent2);padding:0 2px;display:flex;align-items:center;flex-shrink:0;}
+
+.step{display:flex;gap:18px;margin-bottom:28px;position:relative;}
+.step::before{content:'';position:absolute;left:16px;top:38px;bottom:-28px;width:2px;background:var(--border);}
+.step:last-child::before{display:none;}
+.step-num{width:34px;height:34px;background:var(--accent);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;margin-top:2px;}
+.step-content{flex:1;}
+.step-title{font-size:15px;font-weight:700;margin-bottom:6px;color:var(--text);}
+.step-desc{font-size:13px;color:var(--text2);line-height:1.8;}
+
+.screen{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;overflow:hidden;margin:12px 0;box-shadow:0 4px 16px rgba(0,0,0,.07);}
+.screen-bar{background:#f0ece8;padding:9px 14px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--border);}
+.dot{width:10px;height:10px;border-radius:50%;}
+.dot.r{background:#ff5f57;}.dot.y{background:#febc2e;}.dot.g{background:#28c840;}
+.screen-url{flex:1;background:#fff;border:1px solid var(--border);border-radius:4px;padding:3px 10px;font-size:11px;color:var(--text2);text-align:center;font-family:monospace;}
+.screen-body{padding:20px;}
+
+.code{background:#1a1a18;color:#e8e4de;border-radius:8px;padding:18px 22px;font-family:'SF Mono','Fira Code',monospace;font-size:13px;line-height:1.8;margin:10px 0;}
+.code .c{color:#666;}.code .k{color:#c4a882;}.code .v{color:#7ec8a0;}
+.ic{background:#f0ece8;padding:2px 7px;border-radius:4px;font-family:monospace;font-size:12px;color:var(--accent);}
+
+.callout{border-radius:8px;padding:14px 18px;margin:12px 0;display:flex;gap:10px;align-items:flex-start;}
+.callout.tip{background:#f0f7f4;border-left:4px solid var(--green);}
+.callout.warn{background:#fff8f0;border-left:4px solid #e67e22;}
+.callout.info{background:#eff6ff;border-left:4px solid var(--blue);}
+.callout.danger{background:#fff5f5;border-left:4px solid var(--red);}
+.callout-icon{font-size:17px;flex-shrink:0;margin-top:1px;}
+.callout p{font-size:13px;margin:0;color:var(--text);}
+.callout strong{display:block;font-size:13px;font-weight:700;margin-bottom:3px;}
+
+.important-box{background:linear-gradient(135deg,#fff8f0,#fff3e0);border:2px solid #e67e22;border-radius:12px;padding:22px 24px;margin:16px 0;}
+.important-box .imp-title{font-size:15px;font-weight:700;color:#b45309;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.important-box .url-example{background:#fff;border:1px solid #f0c080;border-radius:8px;padding:14px 18px;margin-top:10px;}
+.important-box .url-label{font-size:11px;color:#b45309;font-weight:600;margin-bottom:4px;}
+.important-box .url-text{font-family:monospace;font-size:14px;color:#1a1a18;}
+.important-box .warning-note{margin-top:12px;font-size:13px;color:#b45309;display:flex;align-items:flex-start;gap:6px;}
+
+.highlight{background:var(--accent);color:#fff;border-radius:10px;padding:18px 22px;margin:12px 0;}
+.highlight p{font-size:13px;color:rgba(255,255,255,.85);margin:0;}
+.highlight strong{display:block;font-size:15px;margin-bottom:6px;color:#fff;}
+.highlight code{background:rgba(255,255,255,.2);padding:2px 8px;border-radius:4px;font-family:monospace;font-size:12px;}
+
+.file-tree{background:#1a1a18;color:#e8e4de;border-radius:8px;padding:18px 22px;font-family:monospace;font-size:13px;line-height:2.2;margin:10px 0;}
+.file-tree .f{color:#c4a882;}.file-tree .a{color:#7ec8a0;}.file-tree .c{color:#666;}
+
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px;}
+th{background:var(--accent);color:#fff;padding:9px 14px;text-align:left;font-weight:600;}
+td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:top;}
+tr:nth-child(even) td{background:#f8f6f2;}
+
+hr{border:none;border-top:1px solid var(--border);margin:56px 0;}
+.footer{background:#1a1a18;color:rgba(255,255,255,.4);text-align:center;padding:28px;font-size:12px;margin-top:72px;}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="cover-logo">memoal studio</div>
+  <h1><strong>アルバムフリップブック</strong>セットアップガイド</h1>
+  <div class="cover-sub">
+    受け取った2つのファイルを自分専用のウェブサイトとして<br>
+    公開するための手順書です。<br><br>
+    GitHubは不要。ファイルを直接アップロードするだけで完成します。
+  </div>
+  <div class="cover-badge">デザイナー配布用</div>
+</div>
+
+<div class="container">
+
+<!-- はじめに -->
+<div class="section" style="margin-top:48px;">
+  <div class="section-title"><span class="section-num">📋</span>はじめに</div>
+
+  <p>このガイドでは、受け取った2つのHTMLファイルを使って、あなた専用のフリップブックサイトを作ります。</p>
+
+  <div class="file-tree">
+    <div><span class="f">受け取ったファイル（2つ）</span></div>
+    <div>&nbsp;&nbsp;├── <span class="a">admin.html</span> &nbsp;&nbsp;<span class="c">← あなたが使う管理画面</span></div>
+    <div>&nbsp;&nbsp;└── <span class="a">index.html</span> &nbsp;&nbsp;<span class="c">← クライアントが見る閲覧ページ</span></div>
+  </div>
+
+  <h3>🗺️ 全体の流れ（所要時間：約30〜60分）</h3>
+  <div class="flow">
+    <div class="flow-step"><div class="icon">✏️</div><div class="label">ファイルを<br>書き換える</div><div class="sub">5分</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><div class="icon">🚀</div><div class="label">Cloudflareで<br>公開する</div><div class="sub">無料・10分</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><div class="icon">☁️</div><div class="label">Google Drive<br>API設定</div><div class="sub">20〜30分</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><div class="icon">✅</div><div class="label">完成！<br>使い始める</div><div class="sub">🎉</div></div>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-icon">ℹ️</div>
+    <p><strong>使うサービスはすべて無料です</strong>
+    Cloudflare Pages・Google Driveはすべて無料プランで使えます。GitHubは不要です。クレジットカードの登録も不要です。</p>
+  </div>
+</div>
+
+<hr>
+
+<!-- STEP 1: ファイルを書き換える -->
+<div class="section">
+  <div class="section-title"><span class="section-num">1</span>admin.html を自分用に書き換える</div>
+
+  <p>管理パスワードを自分だけの文字列に変更します。テキストエディタで2か所だけ書き換えます。</p>
+
+  <div class="step" style="margin-top:24px;">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <div class="step-title">admin.html をテキストエディタで開く</div>
+      <div class="step-desc">
+        <strong>Mac：</strong>admin.html を右クリック →「このアプリケーションで開く」→「テキストエディット」<br>
+        <strong>Windows：</strong>admin.html を右クリック →「プログラムから開く」→「メモ帳」
+      </div>
+      <div class="callout tip">
+        <div class="callout-icon">💡</div>
+        <p>VSCode（Visual Studio Code）がある場合はそちらがおすすめです。色分けされて見やすくなります。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <div class="step-title">管理パスワードを変更する</div>
+      <div class="step-desc">
+        <span class="ic">Cmd+F</span>（Windowsは <span class="ic">Ctrl+F</span>）で検索欄を開き、<span class="ic">ADMIN_PASSWORD</span> と入力して検索します。
+      </div>
+      <div style="margin:8px 0 4px;font-size:12px;color:var(--text2);">変更前：</div>
+      <div class="code">const ADMIN_PASSWORD = <span class="k">'memoal2025'</span>;</div>
+      <div style="margin:12px 0 4px;font-size:12px;color:var(--text2);">変更後（自分だけのパスワードに）：</div>
+      <div class="code">const ADMIN_PASSWORD = <span class="v">'あなただけのパスワード'</span>;</div>
+      <div class="callout danger">
+        <div class="callout-icon">🔐</div>
+        <p><strong>パスワードは必ず変更してください</strong>
+        デフォルトのパスワードは配布された全員が知っています。自分だけの文字列に変更してください。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <div class="step-title">ファイルを保存する</div>
+      <div class="step-desc">
+        <span class="ic">Cmd+S</span>（Windowsは <span class="ic">Ctrl+S</span>）で保存してください。<br>
+        ※ クライアントIDはこの後のSTEP 3で取得してから記入します。今はパスワードだけ変更でOKです。
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr>
+
+<!-- STEP 2: Cloudflare -->
+<div class="section">
+  <div class="section-title"><span class="section-num">2</span>Cloudflare Pages で公開する</div>
+
+  <p>Cloudflare Pagesは、HTMLファイルをそのままウェブサイトとして公開できる無料サービスです。GitHubは不要で、ファイルを直接アップロードするだけで使えます。</p>
+
+  <div class="step" style="margin-top:24px;">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <div class="step-title">Cloudflareアカウントを作成する</div>
+      <div class="step-desc">
+        👉 <a href="https://cloudflare.com" target="_blank" class="link">cloudflare.com</a> にアクセスして「Sign Up」から登録します。<br>
+        メールアドレスとパスワードだけで登録できます。クレジットカードは不要です。
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <div class="step-title">Workers & Pages を開く</div>
+      <div class="step-desc">
+        ログイン後、左メニューの「Workers & Pages」をクリックします。<br>
+        「アプリケーションを作成する」ボタンを押してください。
+      </div>
+      <div class="screen">
+        <div class="screen-bar">
+          <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+          <div class="screen-url">dash.cloudflare.com</div>
+        </div>
+        <div class="screen-body" style="display:flex;gap:0;padding:0;">
+          <div style="width:200px;background:#f8f7f5;border-right:1px solid var(--border);padding:16px 12px;flex-shrink:0;">
+            <div style="font-size:10px;color:#999;margin-bottom:10px;letter-spacing:.1em;">メニュー</div>
+            <div style="font-size:12px;color:#555;padding:6px 8px;border-radius:4px;margin-bottom:2px;">🏠 アカウントホーム</div>
+            <div style="font-size:12px;color:#fff;background:var(--accent);padding:6px 8px;border-radius:4px;margin-bottom:2px;font-weight:600;">◇ Workers & Pages</div>
+            <div style="font-size:12px;color:#999;padding:6px 8px;">🌐 ドメイン</div>
+          </div>
+          <div style="flex:1;padding:20px;">
+            <div style="font-size:16px;font-weight:700;color:#1a1a18;margin-bottom:16px;">Workers & Pages</div>
+            <div style="background:var(--accent);color:#fff;padding:9px 18px;border-radius:6px;display:inline-block;font-size:13px;font-weight:600;">＋ アプリケーションを作成する</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <div class="step-title">「Pages」→「直接アップロード」を選択</div>
+      <div class="step-desc">
+        「Pages」タブを選び、「直接アップロード」をクリックします。
+      </div>
+      <div class="screen">
+        <div class="screen-bar">
+          <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+          <div class="screen-url">dash.cloudflare.com / Workers & Pages / 作成</div>
+        </div>
+        <div class="screen-body">
+          <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px;">
+            <div style="padding:8px 20px;font-size:13px;color:#999;">Worker を作成</div>
+            <div style="padding:8px 20px;font-size:13px;font-weight:700;color:var(--accent);border-bottom:2px solid var(--accent);margin-bottom:-2px;">Pages</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;opacity:.5;">
+              <div style="font-size:22px;margin-bottom:8px;">🔗</div>
+              <div style="font-size:13px;color:#999;">Gitに接続</div>
+            </div>
+            <div style="border:2px solid var(--accent);border-radius:8px;padding:16px;text-align:center;">
+              <div style="font-size:22px;margin-bottom:8px;">📁</div>
+              <div style="font-size:13px;font-weight:700;color:var(--accent);">直接アップロード</div>
+              <div style="font-size:11px;color:#999;margin-top:3px;">← これを選択</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <div class="step-title">プロジェクト名を入力する ⚠️ 重要</div>
+      <div class="step-desc">プロジェクト名を入力する欄が表示されます。</div>
+
+      <div class="important-box">
+        <div class="imp-title">⚠️ プロジェクト名がそのままURLになります</div>
+        <p style="font-size:13px;color:#7a5a30;margin-bottom:0;">入力したプロジェクト名が、あなたのサイトのURLになります。</p>
+        <div class="url-example">
+          <div class="url-label">プロジェクト名の例</div>
+          <div class="url-text" style="font-weight:700;margin-bottom:8px;">my-album-studio</div>
+          <div style="font-size:11px;color:#999;margin-bottom:6px;">↓ このURLで公開されます</div>
+          <div class="url-label">管理画面URL</div>
+          <div class="url-text" style="color:var(--blue);margin-bottom:6px;">https://my-album-studio.pages.dev/admin.html</div>
+          <div class="url-label">閲覧ページURL</div>
+          <div class="url-text" style="color:var(--blue);">https://my-album-studio.pages.dev/</div>
+        </div>
+        <div class="warning-note">
+          ⛔ <span><strong>後から変更できません。慎重に決めてください。</strong><br>
+          英数字とハイフン（-）のみ使用可。スペース・日本語は使えません。</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">5</div>
+    <div class="step-content">
+      <div class="step-title">2つのHTMLファイルをアップロードする</div>
+      <div class="step-desc">
+        ファイルをドロップするエリアが表示されます。<br>
+        <strong>admin.html</strong> と <strong>index.html</strong> の2ファイルを両方ドラッグ＆ドロップしてください。<br>
+        「デプロイ」ボタンを押すとアップロードが始まります。
+      </div>
+      <div class="screen">
+        <div class="screen-bar">
+          <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+          <div class="screen-url">Pages / 直接アップロード</div>
+        </div>
+        <div class="screen-body">
+          <div style="border:2px dashed var(--accent2);border-radius:8px;padding:32px;text-align:center;color:var(--text2);">
+            <div style="font-size:32px;margin-bottom:10px;">📂</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;">ファイルをここにドロップ</div>
+            <div style="font-size:12px;">または「ファイルを選択」</div>
+            <div style="margin-top:16px;display:flex;justify-content:center;gap:10px;">
+              <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 14px;font-size:12px;">📄 admin.html</div>
+              <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 14px;font-size:12px;">📄 index.html</div>
+            </div>
+          </div>
+          <div style="margin-top:16px;text-align:right;">
+            <div style="background:var(--accent);color:#fff;padding:9px 20px;border-radius:6px;display:inline-block;font-size:13px;font-weight:600;">デプロイ</div>
+          </div>
+        </div>
+      </div>
+      <div class="callout tip">
+        <div class="callout-icon">💡</div>
+        <p>2ファイルを同時に選択してドロップできます。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">6</div>
+    <div class="step-content">
+      <div class="step-title">デプロイ完了！あなた専用のURLができる</div>
+      <div class="step-desc">1〜2分待つと「✅ 成功」と表示されます。</div>
+      <div class="highlight">
+        <strong>🎉 あなた専用のURLができました！（例）</strong>
+        <p>管理画面：<code>https://my-album-studio.pages.dev/admin.html</code><br>
+        閲覧ページ：<code>https://my-album-studio.pages.dev/</code></p>
+      </div>
+      <div class="callout info">
+        <div class="callout-icon">ℹ️</div>
+        <p><strong>ファイルを更新したいときは？</strong>
+        Cloudflareの管理画面で該当のPagesプロジェクトを開き、「デプロイ」→「アセットをアップロード」から新しいファイルをアップロードし直すだけです。URLは変わりません。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr>
+
+<!-- STEP 3: Google Drive API -->
+<div class="section">
+  <div class="section-title"><span class="section-num">3</span>Google Drive APIを設定する</div>
+
+  <p>アルバム画像を自分のGoogle Driveに自動保存するための設定です。手順が多いですが、一度やれば以後は不要です。</p>
+
+  <div class="callout info">
+    <div class="callout-icon">ℹ️</div>
+    <p><strong>Google Cloud Consoleとは？</strong>
+    GoogleのAPIを管理する開発者向けサービスです。今回はGoogle Drive APIの「接続キー（クライアントID）」を取得するために使います。無料です。</p>
+  </div>
+
+  <div class="step" style="margin-top:24px;">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <div class="step-title">Google Cloud Console にアクセス</div>
+      <div class="step-desc">
+        👉 <a href="https://console.cloud.google.com" target="_blank" class="link">console.cloud.google.com</a> を開きます。<br>
+        普段使っているGoogleアカウント（Gmail）でログインしてください。
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <div class="step-title">新しいプロジェクトを作成</div>
+      <div class="step-desc">
+        画面上部の「プロジェクトを選択」→「新しいプロジェクト」をクリックします。<br>
+        プロジェクト名（例：<span class="ic">album-flipbook</span>）を入力して「作成」を押します。
+      </div>
+      <div class="screen">
+        <div class="screen-bar">
+          <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+          <div class="screen-url">console.cloud.google.com / 新しいプロジェクト</div>
+        </div>
+        <div class="screen-body">
+          <div style="font-size:15px;font-weight:600;color:#333;margin-bottom:14px;">新しいプロジェクト</div>
+          <div style="margin-bottom:12px;">
+            <div style="font-size:11px;color:#666;margin-bottom:4px;">プロジェクト名 *</div>
+            <div style="border:2px solid #4285f4;border-radius:4px;padding:8px 10px;font-size:13px;">album-flipbook</div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <div style="padding:7px 14px;border:1px solid #ccc;border-radius:4px;font-size:12px;color:#666;">キャンセル</div>
+            <div style="padding:7px 14px;background:#4285f4;color:#fff;border-radius:4px;font-size:12px;font-weight:600;">作成</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <div class="step-title">Google Drive API を有効化</div>
+      <div class="step-desc">
+        左メニュー「APIとサービス」→「ライブラリ」を開きます。<br>
+        👉 <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" class="link">console.cloud.google.com/apis/library/drive.googleapis.com</a><br>
+        「Google Drive API」をクリック →「有効にする」を押します。
+      </div>
+      <div class="screen">
+        <div class="screen-bar">
+          <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+          <div class="screen-url">APIとサービス → ライブラリ</div>
+        </div>
+        <div class="screen-body">
+          <div style="background:#f8f9fa;border:1px solid #e0e0e0;border-radius:4px;padding:9px 12px;font-size:13px;color:#999;margin-bottom:14px;">🔍 Google Drive API</div>
+          <div style="border:1px solid #e0e0e0;border-radius:8px;padding:14px;display:flex;align-items:center;gap:12px;">
+            <div style="width:36px;height:36px;background:linear-gradient(135deg,#34a853,#4285f4);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;">📁</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:600;color:#333;">Google Drive API</div>
+              <div style="font-size:11px;color:#666;">Manage files in Google Drive</div>
+            </div>
+            <div style="padding:7px 14px;background:#4285f4;color:#fff;border-radius:4px;font-size:12px;font-weight:600;">有効にする</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <div class="step-title">OAuth 同意画面を設定</div>
+      <div class="step-desc">
+        「APIとサービス」→「OAuth 同意画面」を開きます。<br>
+        ユーザーの種類：<strong>「外部」</strong>を選択 →「作成」を押します。
+      </div>
+      <table>
+        <tr><th>項目</th><th>入力内容</th></tr>
+        <tr><td>アプリ名</td><td>例：<span class="ic">アルバムフリップブック</span></td></tr>
+        <tr><td>ユーザーサポートメール</td><td>自分のGmailアドレス</td></tr>
+        <tr><td>デベロッパーの連絡先</td><td>自分のGmailアドレス</td></tr>
+        <tr><td>スコープ</td><td>変更不要（そのまま次へ）</td></tr>
+      </table>
+      <div class="callout warn">
+        <div class="callout-icon">⚠️</div>
+        <p><strong>テストユーザーの追加を忘れずに</strong>
+        「テストユーザー」の画面で「＋ ユーザーを追加」→ 自分のGmailアドレスを追加してください。これを忘れるとログイン時にエラーになります。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">5</div>
+    <div class="step-content">
+      <div class="step-title">OAuthクライアントIDを作成する</div>
+      <div class="step-desc">
+        「APIとサービス」→「認証情報」→「＋ 認証情報を作成」→「OAuth クライアント ID」をクリックします。
+      </div>
+      <table>
+        <tr><th>項目</th><th>入力内容</th></tr>
+        <tr><td>アプリケーションの種類</td><td><strong>ウェブ アプリケーション</strong></td></tr>
+        <tr><td>名前</td><td>例：<span class="ic">flipbook-web</span>（何でもOK）</td></tr>
+        <tr><td>承認済みの JavaScript 生成元</td><td>STEP2で発行されたCloudflareのURL<br>例：<span class="ic">https://my-album-studio.pages.dev</span><br><small style="color:#999;">※ 末尾の「/」は不要。ドメインだけ入力</small></td></tr>
+      </table>
+      <p>「作成」を押すと <strong>クライアントID</strong> が表示されます。必ずコピーして保存してください。</p>
+      <div class="screen">
+        <div class="screen-bar">
+          <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+          <div class="screen-url">OAuthクライアントを作成しました</div>
+        </div>
+        <div class="screen-body">
+          <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:18px;text-align:center;">
+            <div style="font-size:13px;font-weight:700;color:#2d7a4f;margin-bottom:10px;">✅ OAuthクライアントを作成しました</div>
+            <div style="font-size:11px;color:#555;margin-bottom:6px;">クライアントID（コピーして保存）</div>
+            <div style="background:#fff;border:1px solid #ccc;border-radius:4px;padding:10px;font-family:monospace;font-size:11px;color:#333;word-break:break-all;margin-bottom:10px;">123456789012-abcdefghijklmnop.apps.googleusercontent.com</div>
+            <div style="background:#4285f4;color:#fff;border-radius:4px;padding:7px 16px;font-size:12px;font-weight:600;display:inline-block;">📋 コピー</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">6</div>
+    <div class="step-content">
+      <div class="step-title">admin.html にクライアントIDを記入してCloudflareに再アップロード</div>
+      <div class="step-desc">
+        admin.html をテキストエディタで開き、<span class="ic">YOUR_CLIENT_ID_HERE</span> を検索して書き換えます。
+      </div>
+      <div style="margin:8px 0 4px;font-size:12px;color:var(--text2);">変更前：</div>
+      <div class="code">const GOOGLE_CLIENT_ID = <span class="k">'YOUR_CLIENT_ID_HERE'</span>;</div>
+      <div style="margin:12px 0 4px;font-size:12px;color:var(--text2);">変更後（コピーしたIDを貼り付け）：</div>
+      <div class="code">const GOOGLE_CLIENT_ID = <span class="v">'123456789-abcdefgh.apps.googleusercontent.com'</span>;</div>
+      <p>保存後、Cloudflareの管理画面から admin.html を再アップロードしてください。</p>
+      <div class="callout tip">
+        <div class="callout-icon">💡</div>
+        <p><strong>Cloudflareへの再アップロード手順</strong><br>
+        Cloudflareダッシュボード → Workers & Pages → 作成したプロジェクト → 「デプロイ」タブ → 「デプロイを作成」→ admin.html をアップロード</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr>
+
+<!-- STEP 4: 動作確認 -->
+<div class="section">
+  <div class="section-title"><span class="section-num">4</span>動作確認</div>
+
+  <div class="step" style="margin-top:16px;">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <div class="step-title">管理画面にアクセスしてログイン</div>
+      <div class="step-desc">
+        <span class="ic">https://（あなたのURL）/admin.html</span> にアクセスして、設定したパスワードでログインします。
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <div class="step-title">テスト用JPGをアップロード</div>
+      <div class="step-desc">適当なJPGファイルをドロップして、フリップブックのプレビューが表示されることを確認します。</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <div class="step-title">「🌐 公開登録する」でGoogle Driveに接続</div>
+      <div class="step-desc">
+        「公開登録する」→「📤 Google Driveにアップロード」を押します。<br>
+        Googleアカウントのログイン画面が出たら許可してください。<br>
+        「〇〇を公開登録しました！」と表示されれば設定完了です🎉
+      </div>
+      <div class="callout warn">
+        <div class="callout-icon">⚠️</div>
+        <p><strong>「このアプリはGoogleで確認されていません」と表示される場合</strong>
+        「詳細」→「（アプリ名）に移動」をクリックして進んでください。自分で作成したアプリなので安全です。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="highlight" style="margin-top:24px;">
+    <strong>🎉 セットアップ完了！これからの使い方</strong>
+    <p>管理画面（admin.html）でJPGをアップロード → フリップ確認 → 公開登録<br>
+    閲覧ページ（index.html）のURLをクライアントに共有するだけです。</p>
+  </div>
+</div>
+
+<hr>
+
+<!-- 設定メモ -->
+<div class="section">
+  <div class="section-title"><span class="section-num">📝</span>設定メモ（印刷して保存）</div>
+  <table>
+    <tr><th>項目</th><th>あなたの設定値</th></tr>
+    <tr><td>Cloudflareプロジェクト名</td><td style="min-height:36px;">&nbsp;</td></tr>
+    <tr><td>管理画面URL</td><td>&nbsp;</td></tr>
+    <tr><td>閲覧ページURL</td><td>&nbsp;</td></tr>
+    <tr><td>管理パスワード</td><td>&nbsp;</td></tr>
+    <tr><td>GCPプロジェクト名</td><td>&nbsp;</td></tr>
+    <tr><td>OAuthクライアントID</td><td>&nbsp;</td></tr>
+    <tr><td>使用Googleアカウント</td><td>&nbsp;</td></tr>
+  </table>
+</div>
+
+<!-- よくあるトラブル -->
+<div class="section">
+  <div class="section-title"><span class="section-num">❓</span>よくあるトラブル</div>
+
+  <h3>ログインできない</h3>
+  <div class="callout tip"><div class="callout-icon">💡</div><p>admin.htmlを書き換えた後にCloudflareに再アップロードしているか確認してください。</p></div>
+
+  <h3>「redirect_uri_mismatch」エラーが出る</h3>
+  <div class="callout tip"><div class="callout-icon">💡</div><p>Google Cloud ConsoleのOAuthクライアント設定で「承認済みの JavaScript 生成元」にCloudflareのURLが正しく登録されているか確認してください。登録後は最大5分かかります。</p></div>
+
+  <h3>Cloudflareのデプロイが「失敗」になる</h3>
+  <div class="callout tip"><div class="callout-icon">💡</div><p>ファイルが正しくアップロードされているか確認してください。admin.htmlとindex.htmlの2ファイルが必要です。</p></div>
+
+  <h3>「このアプリはGoogleで確認されていません」と表示される</h3>
+  <div class="callout tip"><div class="callout-icon">💡</div><p>「詳細」→「〇〇に移動（安全でないページ）」をクリックして進んでください。自分で作ったアプリなので問題ありません。</p></div>
+
+  <h3>ファイルを更新したのに反映されない</h3>
+  <div class="callout tip"><div class="callout-icon">💡</div><p>Cloudflareへの反映には数分かかります。少し待ってからブラウザを強制リロード（Cmd+Shift+R）してみてください。</p></div>
+</div>
+
+</div>
+
+<div class="footer">© memoal studio ／ アルバムフリップブック セットアップガイド</div>
+</body>
+</html>
